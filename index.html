@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Fundamentals Flashcards</title>
+<style>
+  :root { --blue:#1a73e8; --green:#188038; --amber:#e37400; --bg:#f1f3f4; --card:#ffffff; --ink:#202124; }
+  * { box-sizing:border-box; margin:0; padding:0; font-family:'Segoe UI', system-ui, sans-serif; }
+  body { background:var(--bg); color:var(--ink); min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:20px 12px 40px; }
+  h1 { font-size:1.4rem; margin-bottom:4px; }
+  .sub { color:#5f6368; font-size:.9rem; margin-bottom:16px; text-align:center; }
+  .tabs { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; justify-content:center; }
+  .tab { border:1px solid #dadce0; background:#fff; padding:8px 16px; border-radius:20px; cursor:pointer; font-size:.9rem; font-weight:600; color:#5f6368; }
+  .tab.active { background:var(--blue); color:#fff; border-color:var(--blue); }
+  .counter { font-size:.85rem; color:#5f6368; margin-bottom:10px; }
+  .cardwrap { perspective:1200px; width:100%; max-width:560px; }
+  .card { position:relative; width:100%; min-height:300px; cursor:pointer; transform-style:preserve-3d; transition:transform .45s; }
+  .card.flipped { transform:rotateY(180deg); }
+  .face { position:absolute; inset:0; backface-visibility:hidden; background:var(--card); border-radius:16px; box-shadow:0 2px 10px rgba(0,0,0,.15); padding:28px 24px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+  .face .tag { position:absolute; top:12px; left:16px; font-size:.7rem; font-weight:700; letter-spacing:.5px; color:#fff; background:var(--blue); padding:3px 10px; border-radius:10px; }
+  .face.back { transform:rotateY(180deg); background:#e8f0fe; }
+  .face .hint { position:absolute; bottom:10px; font-size:.72rem; color:#9aa0a6; }
+  .q { font-size:1.15rem; font-weight:600; line-height:1.45; }
+  .a { font-size:1rem; line-height:1.5; }
+  .controls { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; justify-content:center; }
+  button.ctl { border:none; border-radius:8px; padding:12px 18px; font-size:.95rem; font-weight:600; cursor:pointer; color:#fff; }
+  .prev,.next { background:#5f6368; }
+  .know { background:var(--green); }
+  .review { background:var(--amber); }
+  .shuffle { background:var(--blue); }
+  .stats { margin-top:14px; font-size:.85rem; color:#5f6368; }
+  .stats b.g { color:var(--green); } .stats b.a { color:var(--amber); }
+  .done { margin-top:16px; background:#e6f4ea; border:1px solid #188038; color:#188038; padding:12px 18px; border-radius:10px; font-weight:600; display:none; text-align:center; }
+</style>
+</head>
+<body>
+  <h1>IT Fundamentals Flashcards</h1>
+  <div class="sub">Hardware · Networking · Linux · Ticketing — tap a card to flip. Be honest with the buttons — "Review" cards come back.</div>
+  <div class="tabs" id="tabs"></div>
+  <div class="counter" id="counter"></div>
+  <div class="cardwrap">
+    <div class="card" id="card" onclick="this.classList.toggle('flipped')">
+      <div class="face front"><span class="tag" id="tagF"></span><div class="q" id="qtext"></div><span class="hint">tap to flip</span></div>
+      <div class="face back"><span class="tag" id="tagB"></span><div class="a" id="atext"></div><span class="hint">tap to flip back</span></div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="ctl prev" onclick="move(-1)">&#8592; Prev</button>
+    <button class="ctl review" onclick="mark(false)">Review again</button>
+    <button class="ctl know" onclick="mark(true)">Got it &#10003;</button>
+    <button class="ctl next" onclick="move(1)">Next &#8594;</button>
+  </div>
+  <div class="controls"><button class="ctl shuffle" onclick="shuffleDeck()">Shuffle deck</button></div>
+  <div class="stats" id="stats"></div>
+  <div class="done" id="done">Deck cleared — every card marked "Got it." Run it again tomorrow.</div>
+
+<script>
+const CARDS = [
+// ---------- DAY 1 ----------
+["Day 1","RAM vs. storage — what's the difference?","RAM is the fast, temporary workspace (the chef's countertop) — wiped when power is lost. Storage (HDD/SSD) is the permanent pantry where data lives with power off."],
+["Day 1","What is ECC RAM and why do servers use it?","Error-Correcting Code memory — detects and fixes single-bit errors on the fly and logs them. Servers use it because silent memory errors on machines handling critical data are unacceptable."],
+["Day 1","RAID 0 — what does it do, and its weakness?","Stripes data across drives for speed. NO redundancy: if any one drive dies, ALL data is lost. RAID 0 = 0 drives can fail."],
+["Day 1","RAID 1 — how does it work?","Mirroring: two drives hold identical copies. One dies, the other has everything. Cost: you only get half the total capacity."],
+["Day 1","RAID 5 — how does it work?","3+ drives with data AND parity spread across all of them. Any ONE drive can fail and the array rebuilds it from parity. Good balance of capacity and protection."],
+["Day 1","RAID 6 vs RAID 5?","RAID 6 has double parity, so any TWO drives can fail. Used because rebuilds on big drives take so long that a second failure mid-rebuild is a real risk."],
+["Day 1","RAID 10 — what is it and when is it used?","Mirrored pairs (RAID 1) striped together (RAID 0). Fast AND redundant, but you lose half the capacity. Common for databases."],
+["Day 1","What is parity, in plain English?","Recovery math. Like knowing 3 + X = 7 lets you solve X, parity data lets the array recompute a dead drive's contents."],
+["Day 1","A drive fails in RAID 5 — what happens and what do you do?","Array keeps running in DEGRADED mode (no safety margin left). Hot-swap the failed drive promptly, the array REBUILDS from parity, monitor until complete — data is at risk until then."],
+["Day 1","What does DHCP do?","Automatically hands out IP addresses (plus gateway/DNS info) to devices joining a network — no manual configuration needed."],
+["Day 1","What does DNS do?","The internet's phone book — translates names like google.com into IP addresses. If ping-by-IP works but names fail, suspect DNS."],
+["Day 1","IP address vs MAC address?","IP = your current street address on the network (can change, assigned by DHCP). MAC = permanent serial number burned into the network card (never changes)."],
+["Day 1","Switch vs router?","Switch connects devices within one local network (the mailroom). Router connects networks to other networks/the internet (the post office)."],
+["Day 1","What is a default gateway?","The router's address on your network — the 'door' traffic exits through to reach other networks. Wrong/missing gateway = local network works, internet doesn't."],
+["Day 1","A server is healthy but doesn't answer ping — how is that possible?","A firewall rule can block ICMP (ping) while all real services work fine. You built exactly this in IST 221 Lab 9 with pfSense."],
+["Day 1","What is POST?","Power-On Self-Test: the machine checks its own hardware (CPU, RAM, etc.) at power-up before loading the OS. Failures are reported via beep codes or LED patterns."],
+["Day 1","What is ESD and how do you protect against it?","Electrostatic discharge — a static zap that can silently kill components. Wear a grounded wrist strap, handle boards by edges, never touch gold contacts."],
+["Day 1","What does hot-swap mean?","Replacing a part (drive, PSU, fan) while the server keeps running — no shutdown needed. A huge part of daily data center work."],
+["Day 1","Why do servers have TWO power supplies?","Redundancy — each PSU feeds from a different power path (A/B feeds), so one PSU or one whole circuit can fail without downtime."],
+["Day 1","HDD vs SSD vs NVMe?","HDD: spinning platters, cheap, big, slow, fails mechanically. SSD: chips, fast, no moving parts. NVMe: an SSD that talks directly over PCIe lanes — the fastest."],
+["Day 1","Recite the troubleshooting order.","1) Get symptoms & what changed. 2) Check PHYSICAL layer first (power, cables, LEDs). 3) Isolate — change ONE thing at a time. 4) Test after each change. 5) Document. 6) Escalate when appropriate."],
+["Day 1","What's the 'magic sentence' when you don't know an answer?","\"I don't know that off the top of my head, but here's how I'd find out\" — then name a step: check logs, check docs, ask a senior tech."],
+// ---------- DAY 2 ----------
+["Day 2","RDIMM vs UDIMM?","RDIMM = registered (buffered) server memory — a small chip stabilizes the signal so boards can run many DIMMs reliably. UDIMM = unbuffered, standard desktop RAM."],
+["Day 2","Can you put DDR4 in a DDR5 slot?","No — each DDR generation has its notch in a different spot, so it physically won't seat. If a stick won't go in, STOP pushing and check compatibility."],
+["Day 2","Logs show rising correctable memory errors on one DIMM. Action?","That DIMM is failing. Schedule a swap BEFORE it takes the machine down — corrected errors trending up are a warning, not a non-event."],
+["Day 2","Steps to reseat a RAM stick safely?","Power off & unplug → hold power 5 sec to drain → ESD strap on → open both clips → pull straight up → handle by edges → align notch → press until BOTH clips click."],
+["Day 2","SATA vs SAS vs NVMe?","SATA: standard drive lane, fine for HDDs. SAS: enterprise version — faster, more reliable, many drives per controller. NVMe: SSDs over PCIe directly — fastest."],
+["Day 2","What is SMART data?","The drive's self-monitoring report card. Techs check SMART stats (reallocated sectors, wear level) to catch failing drives before they die."],
+["Day 2","Walk through replacing a failed drive in a hot-swap bay.","Confirm WHICH bay failed (amber LED + management console) → verify the array tolerates removal → pull the RIGHT drive → insert replacement → confirm rebuild starts → monitor to completion → document in ticket."],
+["Day 2","What happens if you pull the WRONG drive from a degraded RAID 5?","The array loses a second member and the whole array dies — total data loss. This is why 'verify before you pull' is the answer interviewers want."],
+["Day 2","What is a hot spare?","An idle drive already in the chassis that the RAID controller automatically grabs and rebuilds onto the moment a drive fails — shrinks the danger window."],
+["Day 2","Why is RAID not a backup?","RAID only survives drive failure. It does nothing against deletion, corruption, ransomware, or site disaster — backups cover those. Classic interview distinction."],
+["Day 2","Describe the data center power path.","Utility grid → switchgear → UPS batteries (carry load for minutes) → rack PDU → server PSUs. Generators start in seconds and take over from the UPS. Dual PSUs on separate A/B feeds."],
+["Day 2","One PSU shows amber but the server is up. Urgent?","Sort of — the server runs on the survivor, but redundancy is GONE. Hot-swap the failed PSU promptly; no downtime required."],
+["Day 2","Server won't boot, no video, beep code. First move?","Beep codes usually point to RAM: reseat the sticks, then try one stick at a time to isolate the bad one."],
+["Day 2","Total mystery no-boot — what's the isolation method?","Strip to minimum config (CPU + 1 DIMM + PSU), confirm it POSTs, then add parts back ONE at a time until it breaks — the last part added is your failure."],
+["Day 2","What is a BMC (iDRAC/iLO)?","A tiny always-on management chip with its own network port. Lets techs see the console, power-cycle, and read hardware logs remotely EVEN IF the OS is dead."],
+["Day 2","Server 'got slow' and it's hot. What's happening?","Thermal throttling — an overheating CPU slows itself to survive. Check fans, airflow, blocked vents, thermal paste. Fans are a top-replaced part."],
+["Day 2","Why do empty rack slots get blanking panels?","To stop hot exhaust air recirculating to the cold aisle — gaps wreck the hot/cold aisle containment and cause hot spots."],
+["Day 2","Recite the T568B wire order, pins 1–8.","Orange-white, orange, green-white, blue, blue-white, green, brown-white, brown. (T568A = same but swap the green and orange pairs.)"],
+["Day 2","Straight-through vs crossover cable?","Straight-through: same standard (B-B) both ends — normal device-to-switch use. Crossover: A on one end, B on the other — legacy direct device-to-device."],
+["Day 2","CAT5e vs CAT6? And fiber handling rules?","CAT5e = 1 Gbps, CAT6/6a = up to 10 Gbps. Fiber: never bend sharply, keep dust caps on, and remember dirty connectors cause mystery faults."],
+["Day 2","Name four field-tech habits to mention in ANY hands-on answer.","Verify asset tag matches the ticket first · ESD strap on · one change at a time, test after each · label what you unplug · document and close the ticket only when confirmed fixed."],
+// ---------- DAY 3 ----------
+["Day 3","Name OSI layers 1–4 and 7 with an example each.","L1 Physical (cables, signals) · L2 Data Link (MAC addresses, switches) · L3 Network (IP, routers) · L4 Transport (TCP/UDP) · L7 Application (HTTP, DNS). Troubleshoot bottom-up."],
+["Day 3","TCP vs UDP?","TCP: connection-based, guarantees delivery and order (web, email, SSH). UDP: fire-and-forget, fast, no guarantees (video streams, DNS queries, game traffic)."],
+["Day 3","Port numbers: SSH, DNS, HTTP, HTTPS, DHCP?","SSH = 22 · DNS = 53 · HTTP = 80 · HTTPS = 443 · DHCP = 67 (server) / 68 (client)."],
+["Day 3","Describe the DHCP handshake (DORA).","Discover — client broadcasts 'any DHCP servers?' · Offer — server offers an IP · Request — client says 'I'll take it' · Acknowledge — server confirms the lease."],
+["Day 3","What happens when you type google.com in a browser (DNS walk)?","Check local cache → ask configured DNS resolver → resolver walks root → .com TLD → Google's authoritative server → returns the IP → browser connects to that IP."],
+["Day 3","What is ARP?","Address Resolution Protocol — finds the MAC address that owns a given IP on the local network. 'Who has 192.168.1.1? Tell me your MAC.' Bridges Layer 3 to Layer 2."],
+["Day 3","How many usable hosts in a /24? What about /16?","/24 = 254 usable (256 minus network + broadcast). /16 = 65,534 usable."],
+["Day 3","Name the three private IP ranges.","10.0.0.0/8 · 172.16.0.0–172.31.255.255 · 192.168.0.0/16. Not routable on the public internet — NAT translates them."],
+["Day 3","A machine's IP starts with 169.254.x.x — what does that tell you?","APIPA / self-assigned address: the machine got NO answer from DHCP. Check link/cable first, then the DHCP server. Classic exam-and-real-life clue."],
+["Day 3","You can ping 8.8.8.8 but google.com fails. Diagnosis?","Connectivity is fine; NAME resolution is broken → DNS problem. Check DNS server settings, try nslookup."],
+["Day 3","You can ping local machines but nothing outside the network. Diagnosis?","Gateway problem — wrong/missing default gateway or the router itself is down. Local (L2) works; routing out (L3) doesn't."],
+["Day 3","What is 127.0.0.1?","Loopback — the machine talking to itself. 'ping 127.0.0.1' tests that the TCP/IP stack works without touching the network at all."],
+["Day 3","What do a switch port's link lights tell you?","No light = no physical connection (cable/NIC/port dead). Solid = link established. Blinking = traffic flowing. It's the first thing you check at Layer 1."],
+["Day 3","What is a duplex/speed mismatch?","Two ends of a link negotiating different speed or duplex settings — link works but crawls with errors/collisions. Symptom: 'connected but horribly slow.'"],
+["Day 3","What is a VLAN?","A virtual LAN — one physical switch logically split into separate networks. Devices on different VLANs can't talk without a router, even on the same switch. Segmentation without extra hardware."],
+["Day 3","What is NAT?","Network Address Translation — the router rewrites private internal IPs to its one public IP for outbound traffic (and tracks the sessions), letting a whole network share one public address."],
+["Day 3","Your CLI toolkit for 'no network' — name 5 commands and their jobs.","ping (reachability) · traceroute/tracert (where the path breaks) · ipconfig/ifconfig (my IP/gateway/DNS) · nslookup (test DNS) · arp -a (IP-to-MAC table on the LAN)."],
+["Day 3","How does a switch know where to send frames?","It learns: it records each incoming frame's source MAC + port into its MAC address table, then forwards future frames for that MAC only to that port (floods if unknown)."],
+// ---------- FIBER (Day 2 extension) ----------
+["Day 2","How does a fiber optic cable actually work?","Light pulses travel through a glass core, trapped by total internal reflection — the cladding has a different refractive index, so light bounces inward and stays in the core for kilometers. No electrical interference, huge bandwidth."],
+["Day 2","Single-mode vs multi-mode fiber?","Multi-mode: fat 50µm core, light bounces in multiple paths, cheap source, ~400-550m max, aqua/orange jacket — inside buildings. Single-mode: tiny 9µm core, one straight laser path, tens of km, yellow jacket — between buildings. Single = straight = far."],
+["Day 2","What is a transceiver (SFP/QSFP)?","The pluggable module that converts electricity to light and back — SFP+ = 10G, QSFP28 = 100G. Hot-swappable, and a failed transceiver is a classic 'link down' cause. DACs are copper cables with transceivers molded on for short rack runs."],
+["Day 2","Name the common fiber connectors.","LC — small, most common in DCs, duplex pairs (one strand TX, one RX). SC — older, bigger. MPO/MTP — multi-fiber ribbon plug (8–24 strands) for 40G/100G+ trunks."],
+["Day 2","Fiber handling rules — name four.","Never bend past minimum bend radius (light escapes/glass cracks) · dust caps on until plug-in · clean end-faces before EVERY connection (dirt = #1 mystery fault) · never look into a live fiber — invisible laser light can damage your eye."],
+["Day 2","Fiber link is down — your troubleshooting order?","Reseat transceiver → check TX/RX not swapped (flip the LC pair) → clean both end-faces → swap transceiver → swap patch cable → escalate to the trunk/pathway. One change at a time."],
+["Day 2","What is an OTDR?","Optical Time-Domain Reflectometer — shoots light down the fiber and reads reflections to locate breaks and losses by distance. The tool for finding WHERE a fiber run failed."],
+// ---------- TICKETS ----------
+["Tickets","What is a ticket, and what's Rule #1 of ticketing?","A ticket is the unit of work: one problem, one record, one owner — everything done gets logged in it. Rule #1: if it isn't in the ticket, it didn't happen."],
+["Tickets","Walk through the life of a ticket.","Intake (user, monitoring alert, or tech observation) → Triage (set priority) → Assignment (one owner) → Diagnose & act, logging as you go → Escalate or resolve → Verify the fix, document root cause, close."],
+["Tickets","How is ticket priority set?","Impact (how many users/systems affected) × urgency (how time-sensitive). High impact + high urgency = P1. A down cluster beats a down server beats a dead redundant PSU."],
+["Tickets","What do Tier 1, 2, and 3 support do?","T1: first contact, known fixes, triage/routing. T2: hands-on technical work — the hands-on technician tier (swaps, reseats, diagnostics). T3: engineers/specialists — firmware, design, vendor escalations."],
+["Tickets","What makes a GOOD escalation?","Escalating WITH your notes: symptoms, what you tried, what you ruled out — so the next tier doesn't repeat your steps. The sin isn't escalating; it's escalating empty-handed or sitting on a P1."],
+["Tickets","What is an SLA?","Service Level Agreement — the promised response/resolution time per priority (e.g., P1 respond in 15 min). SLAs decide what you work FIRST. A degraded RAID with no hot spare has a real clock on it."],
+["Tickets","When can you close a ticket?","Only after VERIFYING the fix (rebuild completed, link restored) and documenting root cause + resolution. Never close on 'seems fine' — reopened tickets are the shame stat."],
+["Tickets","Name common ticketing systems and metrics.","Systems: ServiceNow, Jira Service Management, Zendesk. Metrics: MTTR, first-touch resolution, SLA compliance, reopen rate, queue age."],
+["Tickets","You've never used ServiceNow professionally. How do you answer honestly?","'I haven't worked a professional queue yet, but I know the workflow: intake, triage by impact and urgency, one owner, document everything, escalate with notes, verify before closing — and I already work that way in my labs and inventory reconciliation.'"],
+["Tickets","ServiceNow: Incident vs Request vs Problem vs Change?","Incident = something is broken. Request = someone wants something (access, laptop). Problem = root cause behind repeated incidents. Change = planned modification with approval workflow. Knowing this split is the #1 fluency signal."],
+["Tickets","ServiceNow incident states — and why Resolved ≠ Closed?","New → In Progress → On Hold → Resolved → Closed. Resolved = 'I fixed it'; Closed = user confirmed or timer expired. The gap between them is where reopens happen."],
+["Tickets","ServiceNow: work notes vs additional comments?","Work notes = internal, techs only. Additional comments = visible to the user. Never vent in the wrong box. Also know: assignment group = team queue; assigned to = the one owner."],
+["Tickets","What are the KB and CMDB in ServiceNow?","KB (Knowledge Base) = solved-it-before articles — search before troubleshooting, write one after solving something new. CMDB = database of every asset (servers, switches) that tickets link to — the ticket knows which rack/machine via its CMDB record."]
+];
+
+let deck = CARDS.map((c,i)=>({day:c[0], q:c[1], a:c[2], known:false, id:i}));
+let filter = "All";
+let idx = 0;
+
+const tabsEl = document.getElementById('tabs');
+["All","Day 1","Day 2","Day 3","Tickets"].forEach(t=>{
+  const b=document.createElement('button');
+  b.className='tab'+(t===filter?' active':'');
+  b.textContent=t + (t==="All" ? ` (${deck.length})` : ` (${deck.filter(c=>c.day===t).length})`);
+  b.onclick=()=>{filter=t; idx=0; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); b.classList.add('active'); render();};
+  tabsEl.appendChild(b);
+});
+
+function visible(){ return deck.filter(c=> (filter==="All"||c.day===filter) && !c.known ); }
+
+function render(){
+  const v = visible();
+  const card=document.getElementById('card');
+  card.classList.remove('flipped');
+  const doneEl=document.getElementById('done');
+  if(v.length===0){
+    document.getElementById('qtext').textContent="🎉";
+    document.getElementById('atext').textContent="";
+    document.getElementById('tagF').textContent=filter;
+    document.getElementById('tagB').textContent=filter;
+    document.getElementById('counter').textContent="0 cards left";
+    doneEl.style.display='block';
+  } else {
+    doneEl.style.display='none';
+    if(idx>=v.length) idx=0;
+    const c=v[idx];
+    setTimeout(()=>{ // let flip reset before text change
+      document.getElementById('qtext').textContent=c.q;
+      document.getElementById('atext').textContent=c.a;
+      document.getElementById('tagF').textContent=c.day;
+      document.getElementById('tagB').textContent=c.day;
+    }, 60);
+    document.getElementById('counter').textContent=`Card ${idx+1} of ${v.length} remaining (${filter})`;
+  }
+  const total = deck.filter(c=> filter==="All"||c.day===filter).length;
+  const got = total - v.length;
+  document.getElementById('stats').innerHTML = `<b class="g">${got} got it</b> · <b class="a">${v.length} to go</b> of ${total}`;
+}
+
+function move(d){ const v=visible(); if(!v.length) return; idx=(idx+d+v.length)%v.length; render(); }
+function mark(known){
+  const v=visible(); if(!v.length) return;
+  const c=v[idx];
+  if(known){ c.known=true; } else { idx=(idx+1)%v.length; }
+  render();
+}
+function shuffleDeck(){
+  for(let i=deck.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [deck[i],deck[j]]=[deck[j],deck[i]]; }
+  idx=0; render();
+}
+render();
+</script>
+</body>
+</html>
