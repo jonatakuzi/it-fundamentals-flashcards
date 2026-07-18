@@ -129,6 +129,23 @@ const CARDS = [
 ["Day 2","Fiber handling rules — name four.","Never bend past minimum bend radius (light escapes/glass cracks) · dust caps on until plug-in · clean end-faces before EVERY connection (dirt = #1 mystery fault) · never look into a live fiber — invisible laser light can damage your eye."],
 ["Day 2","Fiber link is down — your troubleshooting order?","Reseat transceiver → check TX/RX not swapped (flip the LC pair) → clean both end-faces → swap transceiver → swap patch cable → escalate to the trunk/pathway. One change at a time."],
 ["Day 2","What is an OTDR?","Optical Time-Domain Reflectometer — shoots light down the fiber and reads reflections to locate breaks and losses by distance. The tool for finding WHERE a fiber run failed."],
+// ---------- DAY 4: INTERVIEW BANK ----------
+["Day 4","What protocol does ping use? (trap question)","ICMP — Internet Control Message Protocol. NOT TCP or UDP; that's the trap. Ping sends an ICMP echo request and times the echo reply."],
+["Day 4","Ports: HTTP, HTTPS, SSH, DNS?","HTTP 80 · HTTPS 443 · SSH 22 · DNS 53 (DHCP 67/68). Recite them cold."],
+["Day 4","Subnet masks for Class A, B, C networks?","A = 255.0.0.0 (/8) · B = 255.255.0.0 (/16) · C = 255.255.255.0 (/24)."],
+["Day 4","Name every component in a PC — then what's different in a server.","PC: case, motherboard, PSU, CPU, RAM, storage, fans, NIC, graphics. Server adds: dual CPUs, ECC RDIMMs, dual hot-swap PSUs, drive backplane + RAID controller, extra NICs, BMC remote management (iDRAC/iLO), rack chassis — no dedicated GPU needed."],
+["Day 4","How do you spot a dead hard drive WITHOUT software or pulling it?","Listen (clicking = heads hitting), look (amber fault LED on bay/controller), feel (no spin-up vibration). Then confirm via management console / SMART."],
+["Day 4","BIOS vs UEFI — what do they do?","Firmware that initializes hardware, runs POST, then boots the OS. UEFI is the modern version: faster, big-disk support, Secure Boot. A tech uses it for: boot order, checking RAM/CPU detection, firmware updates."],
+["Day 4","Linux rapid-fire: first disk, boot messages, logs, permanent mounts, kernel version?","/dev/sda (NVMe: /dev/nvme0n1) · dmesg · /var/log · /etc/fstab · uname -r."],
+["Day 4","How do you make a filesystem, and how do you install an OS on hundreds of machines?","mkfs.ext4 /dev/sda1 · PXE boot — machines network-boot an image from a server; big fleets never install one by one."],
+["Day 4","THE scenario: 100 broken computers — how do you proceed?","Don't touch 100 machines. 1) Find what they share (rack? time? model?). 2) Check SHARED infrastructure first — one bad switch/PDU breaks 100 at once. 3) Group by symptom. 4) Correlate with events (patch? power blip?). 5) Deep-diagnose ONE per group via BMC/logs. 6) Fix root cause, verify, sweep, document."],
+["Day 4","Playbook: server has NO power at all.","Outlet/PDU port live (test known-good) → power cable seated both ends → PSU switch on → PSU status LED → swap known-good cable → reseat/swap PSU (check both A/B feeds) → still dead = board/power distribution, escalate with notes."],
+["Day 4","Playbook: powers on but no POST / no video.","Read diagnostic LEDs/beeps + BMC log → reseat RAM, one-stick test → reseat 24-pin and 8-pin power → strip to minimum config (CPU + 1 DIMM + PSU) → add parts back one at a time — last part added is the culprit."],
+["Day 4","Playbook: 'No boot device found.'","Boot order right in BIOS? → drive detected in BIOS/RAID controller? → bay LED amber? → array degraded/failed? → reseat drive/cable. Usually a dead drive or RAID controller issue — check before reinstalling anything."],
+["Day 4","Playbook: random crashes / blue screens — prime suspects?","RAM (run memtest86 boot CD) · overheating (fans, dust, paste) · failing PSU under load · dying drive (SMART). One variable at a time."],
+["Day 4","What's a CMOS battery and what happens when it dies?","Coin cell that keeps BIOS settings and the clock. When it dies: board 'forgets' settings, clock resets, weird boot behavior — a classic sneaky culprit."],
+["Day 4","What are VRMs and PCIe lanes?","VRMs: voltage regulators near the CPU socket converting PSU power to precise CPU voltage (they run hot). PCIe lanes: bandwidth channels of expansion slots — x1/x4/x8/x16; NVMe, NICs, GPUs all ride PCIe."],
+["Day 4","Server sees only 64GB of its 128GB RAM. First moves?","Check BIOS/BMC for which DIMMs are detected → power down, ESD strap, reseat missing DIMMs → verify slot population order per board manual → test suspect stick in a known-good slot."],
 // ---------- TICKETS ----------
 ["Tickets","What is a ticket, and what's Rule #1 of ticketing?","A ticket is the unit of work: one problem, one record, one owner — everything done gets logged in it. Rule #1: if it isn't in the ticket, it didn't happen."],
 ["Tickets","Walk through the life of a ticket.","Intake (user, monitoring alert, or tech observation) → Triage (set priority) → Assignment (one owner) → Diagnose & act, logging as you go → Escalate or resolve → Verify the fix, document root cause, close."],
@@ -150,7 +167,7 @@ let filter = "All";
 let idx = 0;
 
 const tabsEl = document.getElementById('tabs');
-["All","Day 1","Day 2","Day 3","Tickets"].forEach(t=>{
+["All","Day 1","Day 2","Day 3","Day 4","Tickets"].forEach(t=>{
   const b=document.createElement('button');
   b.className='tab'+(t===filter?' active':'');
   b.textContent=t + (t==="All" ? ` (${deck.length})` : ` (${deck.filter(c=>c.day===t).length})`);
